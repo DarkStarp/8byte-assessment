@@ -67,15 +67,6 @@ pipeline {
             }
         }
 
-        stage('Confirm Deploy') {
-            when {
-                expression { params.MODE == 'deploy' }
-            }
-            steps {
-                input message: "Deploy infrastructure to ${ENVIRONMENT}?", ok: 'Deploy Now'
-            }
-        }
-
         stage('Terraform Apply') {
             when {
                 expression { params.MODE == 'deploy' }
