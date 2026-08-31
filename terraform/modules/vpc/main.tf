@@ -20,7 +20,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.this.id
   cidr_block              = cidrsubnet(var.vpc_cidr, 8, 0)
   map_public_ip_on_launch = true
-  availability_zone       = "${var.environment == "prod" ? "eu-north-1a" : "eu-north-1a"}"
+  availability_zone       = "eu-north-1a"
 
   tags = {
     Name = "${var.environment}-public-subnet"
@@ -30,7 +30,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.this.id
   cidr_block        = cidrsubnet(var.vpc_cidr, 8, 1)
-  availability_zone = "${var.environment == "prod" ? "eu-north-1a" : "eu-north-1a"}"
+  availability_zone = "eu-north-1a"
 
   tags = {
     Name = "${var.environment}-private-subnet"
