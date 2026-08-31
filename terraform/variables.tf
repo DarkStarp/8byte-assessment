@@ -1,16 +1,16 @@
 variable "aws_region" {
-  type        = string
-  default     = "eu-north-1"
+  type    = string
+  default = "eu-north-1"
 }
 
 variable "environment" {
-  type        = string
-  default     = "test"
+  type    = string
+  default = "test"
 }
 
 variable "vpc_cidr" {
-  type        = string
-  default     = "10.20.0.0/16"
+  type    = string
+  default = "10.20.0.0/16"
 }
 
 variable "db_name" {
@@ -30,8 +30,8 @@ variable "db_instance_class" {
 }
 
 variable "container_image" {
-  type        = string
-  default     = "366945364324.dkr.ecr.eu-north-1.amazonaws.com/practice/assessment"
+  type    = string
+  default = "366945364324.dkr.ecr.eu-north-1.amazonaws.com/practice/assessment"
 }
 
 variable "container_port" {
