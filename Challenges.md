@@ -16,4 +16,6 @@ Vary: Accept-Encoding
 X-Content-Type-Options: nosniff
 
 ------------------------------------------
+Terraform fmt -check -recursive failures
+
 
