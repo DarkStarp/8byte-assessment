@@ -1,0 +1,123 @@
+pipeline {
+    agent any
+
+    triggers {
+        githubPush()
+    }
+
+    parameters {
+        choice(
+            name: 'MODE',
+            choices: ['build', 'deploy'],
+            description: 'Validate only or deploy the AWS infrastructure.'
+        )
+    }
+
+    environment {
+        AWS_REGION  = 'eu-north-1'
+        TF_DIR      = 'terraform'
+        ENVIRONMENT = 'test'
+        ACCOUNT_ID  = '366945364324'
+        ROLE_ARN    = "arn:aws:iam::366945364324:role/instanceRole"
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Assume Infra Role') {
+            steps {
+                script {
+                    def creds = sh(
+                        script: '''
+                            aws sts assume-role \
+                                --role-arn "${ROLE_ARN}" \
+                                --role-session-name "infra-${MODE}-${BUILD_NUMBER}" \
+                                --duration-seconds 3600 \
+                                --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+                                --output text
+                        ''',
+                        returnStdout: true
+                    ).trim().split()
+
+                    env.AWS_ACCESS_KEY_ID     = creds[0]
+                    env.AWS_SECRET_ACCESS_KEY = creds[1]
+                    env.AWS_SESSION_TOKEN     = creds[2]
+                }
+            }
+        }
+
+        stage('Terraform Format Check') {
+            steps {
+                dir(TF_DIR) {
+                    sh 'terraform fmt -check -recursive'
+                }
+            }
+        }
+
+        stage('Terraform Init & Validate') {
+            steps {
+                dir(TF_DIR) {
+                    sh 'terraform init -reconfigure'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            when {
+                expression { params.MODE == 'build' || params.MODE == 'deploy' }
+            }
+            steps {
+                dir(TF_DIR) {
+                    sh "terraform plan -var='environment=${ENVIRONMENT}' -out=tfplan"
+                }
+            }
+        }
+
+        stage('Confirm Deploy') {
+            when {
+                expression { params.MODE == 'deploy' }
+            }
+            steps {
+                input message: "Deploy infrastructure to ${ENVIRONMENT}?", ok: 'Deploy Now'
+            }
+        }
+
+        stage('Terraform Apply') {
+            when {
+                expression { params.MODE == 'deploy' }
+            }
+            steps {
+                dir(TF_DIR) {
+                    sh 'terraform apply -auto-approve tfplan'
+                    sh 'terraform output'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                if (params.MODE == 'build') {
+                    echo "Terraform plan passed for ${ENVIRONMENT}."
+                } else {
+                    echo "Terraform deployment completed successfully for ${ENVIRONMENT}."
+                }
+            }
+        }
+
+        failure {
+            echo "Infrastructure pipeline failed for ${ENVIRONMENT} in mode: ${params.MODE}"
+        }
+    }
+}
